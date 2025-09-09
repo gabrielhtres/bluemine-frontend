@@ -1,15 +1,26 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
+import { routePermissions } from "../../config/permissions";
 
 export function ProtectedOutlet({ requiredPermission }) {
-  const { token, permissions } = useAuthStore();
+  const { accessToken, permissions: userPermissions } = useAuthStore();
 
-  if (!token) {
+  if (!accessToken) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!permissions?.includes(requiredPermission)) {
-    return <Navigate to="/tasks" replace />;
+  if (requiredPermission) {
+    const allowedPermissions = routePermissions[requiredPermission] || [
+      requiredPermission,
+    ];
+
+    const hasPermission = userPermissions?.some((permission) =>
+      allowedPermissions.includes(permission)
+    );
+
+    if (!hasPermission) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return <Outlet />;

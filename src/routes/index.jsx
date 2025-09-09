@@ -6,6 +6,15 @@ import LoginPage from "../screens/Login";
 import TasksPage from "../screens/Task";
 import RegisterPage from "../screens/Register";
 import { ProtectedOutlet } from "../components/ProtectedRoutes";
+import DashboardPage from "../screens/Dashboard";
+
+function protectedRoute(path, element, permission) {
+  return {
+    path,
+    element: <ProtectedOutlet requiredPermission={permission} />,
+    children: [{ index: true, element }],
+  };
+}
 
 export const router = createBrowserRouter([
   {
@@ -20,21 +29,10 @@ export const router = createBrowserRouter([
     path: "/",
     element: <App />,
     children: [
-      {
-        path: "/projects",
-        element: <ProtectedOutlet requiredPermission="projects" />,
-        children: [{ path: "", element: <ProjectsPage /> }],
-      },
-      {
-        path: "/tasks",
-        element: <ProtectedOutlet requiredPermission="tasks" />,
-        children: [{ path: "", element: <TasksPage /> }],
-      },
-      {
-        path: "/users",
-        element: <ProtectedOutlet requiredPermission="users" />,
-        children: [{ path: "", element: <UsersPage /> }],
-      },
+      protectedRoute("projects", <ProjectsPage />, "projects"),
+      protectedRoute("tasks", <TasksPage />, "tasks"),
+      protectedRoute("users", <UsersPage />, "users"),
+      protectedRoute("dashboard", <DashboardPage />, "tasks"),
     ],
   },
 ]);

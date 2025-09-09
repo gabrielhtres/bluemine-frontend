@@ -28,20 +28,15 @@ export default function LoginPage() {
 
     try {
       const response = await api.post("/auth/login", { email, password });
-      const { token, permissions } = response.data;
-      setAuth({ token, permissions });
+      const { accessToken, refreshToken, permissions } = response.data;
 
-      if (permissions.includes("admin")) {
-        navigate("/admin");
-        return;
-      }
+      setAuth({ accessToken, refreshToken, permissions });
 
-      if (permissions.includes("manager")) {
+      if (permissions.includes("manager") || permissions.includes("admin")) {
         navigate("/projects");
-        return;
+      } else {
+        navigate("/tasks");
       }
-
-      navigate("/tasks");
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || "Erro ao fazer login");

@@ -1,28 +1,27 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-const initialState = {
-  token: null,
+// Define o estado que será persistido no localStorage
+const initialAuthState = {
+  accessToken: null,
+  refreshToken: null,
   permissions: [],
-}
+};
 
 export const useAuthStore = create(
   persist(
     (set, get) => ({
-     ...initialState,
+      ...initialAuthState,
 
-      setAuth: ({ token, permissions }) =>
-        set({ token, permissions }),
+      setAuth: ({ accessToken, refreshToken, permissions }) =>
+        set({ accessToken, refreshToken, permissions }),
 
-      clearAuth: () => set({ token: null, permissions: [] }),
+      logout: () => set(initialAuthState),
 
-      isAuthenticated: () => !!get().token,
-      
-      logout: () => set(initialState),
+      isAuthenticated: () => !!get().accessToken,
     }),
     {
       name: 'auth-storage',
-      getStorage: () => localStorage,
-    }
-  )
+    },
+  ),
 );

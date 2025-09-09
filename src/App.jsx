@@ -1,5 +1,3 @@
-// No seu arquivo App.jsx
-
 import {
   AppShell,
   Burger,
@@ -10,13 +8,14 @@ import {
   Divider,
   UnstyledButton,
   Box,
+  Center,
+  Loader,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-// ✨ 1. Importe a função 'logout' da sua store
 import { useAuthStore } from "./store/authStore";
-
 import {
+  IconChartPie,
   IconGauge,
   IconUsers,
   IconListCheck,
@@ -31,6 +30,12 @@ function App() {
   const location = useLocation();
 
   const menuItems = [
+    {
+      label: "Dashboard",
+      path: "/dashboard",
+      permission: "tasks",
+      icon: IconChartPie,
+    },
     { label: "Usuários", path: "/users", permission: "users", icon: IconUsers },
     {
       label: "Projetos",
@@ -64,7 +69,7 @@ function App() {
       <AppShell.Header>
         <Group h="100%" px="md">
           <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-          <Text fw={700}>Sua Aplicação</Text>
+          <Text fw={700}>Bluemine</Text>
         </Group>
       </AppShell.Header>
 
