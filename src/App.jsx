@@ -21,7 +21,7 @@ import {
   IconBox,
   IconUserCircle,
 } from "@tabler/icons-react";
-import { useEffect } from "react";
+import api from "./services/api";
 
 function App() {
   const [opened, { toggle }] = useDisclosure();
