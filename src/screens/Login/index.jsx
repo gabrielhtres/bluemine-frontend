@@ -28,14 +28,14 @@ export default function LoginPage() {
 
     try {
       const response = await api.post("/auth/login", { email, password });
-      const { accessToken, refreshToken, permissions } = response.data;
+      const { accessToken, refreshToken, permissions, user } = response.data;
 
-      setAuth({ accessToken, refreshToken, permissions });
+      setAuth({ accessToken, refreshToken, permissions, user });
 
       if (permissions.includes("manager") || permissions.includes("admin")) {
         navigate("/projects");
       } else {
-        navigate("/tasks");
+        navigate("/my-tasks");
       }
     } catch (err) {
       console.error(err);

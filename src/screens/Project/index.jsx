@@ -42,6 +42,7 @@ export default function ProjectsPage() {
   }, []);
 
   const handleOpenAssignModal = (project) => {
+    console.log("project", project);
     setSelectedProject(project);
     const initialAssignments =
       project.developers?.map((dev) => ({
@@ -82,8 +83,10 @@ export default function ProjectsPage() {
     };
 
     try {
-      await api.post("/project-member", payload);
+      const response = await api.post("/project-member", payload);
+      console.log("response", response.data);
       setAssignModalOpened(false);
+      setAssignments(response.data);
     } catch (error) {
       console.error("Erro ao atribuir desenvolvedores:", error);
     } finally {

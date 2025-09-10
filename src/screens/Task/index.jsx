@@ -6,6 +6,20 @@ export default function TasksPage() {
   const [usersOptions, setUsersOptions] = useState([]);
   const [projectsOptions, setProjectsOptions] = useState([]);
 
+  const taskStatusTranslate = {
+    todo: "A Fazer",
+    in_progress: "Em Progresso",
+    review: "Revisão",
+    done: "Concluído",
+  };
+
+  const priorityTranslate = {
+    low: "Baixa",
+    medium: "Média",
+    high: "Alta",
+    critical: "Crítica",
+  };
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -45,11 +59,32 @@ export default function TasksPage() {
       columns={[
         { key: "title", label: "Título" },
         { key: "description", label: "Descrição" },
-        { key: "status", label: "Status" },
-        { key: "priority", label: "Prioridade" },
-        { key: "dueDate", label: "Data Limite" },
-        { key: "projectId", label: "Projeto" },
-        { key: "assigneeId", label: "Responsável" },
+        {
+          key: "status",
+          label: "Status",
+          transform: (status) => taskStatusTranslate[status] || status,
+        },
+        {
+          key: "priority",
+          label: "Prioridade",
+          transform: (priority) => priorityTranslate[priority] || priority,
+        },
+        {
+          key: "dueDate",
+          label: "Data Limite",
+          transform: (date) =>
+            date ? new Date(date).toLocaleDateString() : "N/A",
+        },
+        {
+          key: "projectId",
+          label: "Projeto",
+          transform: (_, item) => item.project?.name || "N/A",
+        },
+        {
+          key: "assigneeId",
+          label: "Responsável",
+          transform: (_, item) => item.assignee?.name || "N/A",
+        },
       ]}
       modalFields={[
         { key: "title", label: "Título" },
@@ -59,10 +94,10 @@ export default function TasksPage() {
           label: "Status",
           type: "select",
           options: [
-            { value: "todo", label: "Todo" },
-            { value: "in_progress", label: "In Progress" },
-            { value: "review", label: "Review" },
-            { value: "done", label: "Done" },
+            { value: "todo", label: "A Fazer" },
+            { value: "in_progress", label: "Em Progresso" },
+            { value: "review", label: "Revisão" },
+            { value: "done", label: "Concluído" },
           ],
         },
         {
@@ -70,10 +105,10 @@ export default function TasksPage() {
           label: "Prioridade",
           type: "select",
           options: [
-            { value: "low", label: "Low" },
-            { value: "medium", label: "Medium" },
-            { value: "high", label: "High" },
-            { value: "critical", label: "Critical" },
+            { value: "low", label: "Baixa" },
+            { value: "medium", label: "Média" },
+            { value: "high", label: "Alta" },
+            { value: "critical", label: "Crítica" },
           ],
         },
         { key: "dueDate", label: "Data Limite", type: "date" },

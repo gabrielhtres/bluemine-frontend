@@ -8,8 +8,6 @@ import {
   Divider,
   UnstyledButton,
   Box,
-  Center,
-  Loader,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
@@ -21,11 +19,13 @@ import {
   IconListCheck,
   IconLogout,
   IconBox,
+  IconUserCircle,
 } from "@tabler/icons-react";
+import { useEffect } from "react";
 
 function App() {
   const [opened, { toggle }] = useDisclosure();
-  const { permissions, logout } = useAuthStore();
+  const { permissions, logout, user } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,7 +33,7 @@ function App() {
     {
       label: "Dashboard",
       path: "/dashboard",
-      permission: "tasks",
+      permission: "dashboard",
       icon: IconChartPie,
     },
     { label: "Usuários", path: "/users", permission: "users", icon: IconUsers },
@@ -49,11 +49,23 @@ function App() {
       permission: "tasks",
       icon: IconListCheck,
     },
+    {
+      label: "Tarefas",
+      path: "/my-tasks",
+      permission: "toggle_tasks",
+      icon: IconListCheck,
+    },
   ];
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login", { replace: true });
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      console.error("Erro ao fazer logout no servidor:", error);
+    } finally {
+      logout();
+      navigate("/login", { replace: true });
+    }
   };
 
   return (
@@ -67,9 +79,25 @@ function App() {
       }}
     >
       <AppShell.Header>
-        <Group h="100%" px="md">
-          <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-          <Text fw={700}>Bluemine</Text>
+        <Group h="100%" px="md" justify="space-between">
+          <Group>
+            <Burger
+              opened={opened}
+              onClick={toggle}
+              hiddenFrom="sm"
+              size="sm"
+            />
+            <Text fw={700}>Bluemine</Text>
+          </Group>
+
+          {user && (
+            <Group gap="xs">
+              <IconUserCircle size="1.5rem" stroke={1.5} />
+              <Text fw={500} size="sm">
+                {user}
+              </Text>
+            </Group>
+          )}
         </Group>
       </AppShell.Header>
 

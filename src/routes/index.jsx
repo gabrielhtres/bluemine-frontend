@@ -7,6 +7,7 @@ import TasksPage from "../screens/Task";
 import RegisterPage from "../screens/Register";
 import { ProtectedOutlet } from "../components/ProtectedRoutes";
 import DashboardPage from "../screens/Dashboard";
+import MyTasksPage from "../screens/MyTask";
 
 function protectedRoute(path, element, permission) {
   return {
@@ -31,8 +32,9 @@ export const router = createBrowserRouter([
     children: [
       protectedRoute("projects", <ProjectsPage />, "projects"),
       protectedRoute("tasks", <TasksPage />, "tasks"),
+      protectedRoute("my-tasks", <MyTasksPage />, "toggle_tasks"),
       protectedRoute("users", <UsersPage />, "users"),
-      protectedRoute("dashboard", <DashboardPage />, "tasks"),
+      protectedRoute("dashboard", <DashboardPage />, "dashboard"),
     ],
   },
 ]);

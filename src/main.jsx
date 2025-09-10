@@ -1,8 +1,7 @@
-// src/main.jsx (atualizado)
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
-import { router } from "./routes"; // Importa o roteador
+import { router } from "./routes";
 
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";

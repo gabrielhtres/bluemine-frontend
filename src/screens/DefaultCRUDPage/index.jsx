@@ -29,7 +29,6 @@ export default function DefaultCRUDPage({
 
     try {
       const response = await api.get(apiRoute);
-      console.log("response", response);
       setData(response.data);
     } catch (error) {
       console.error(error);
@@ -130,7 +129,9 @@ export default function DefaultCRUDPage({
             <Table.Tr key={item.id}>
               {columns.map((col) => (
                 <Table.Td key={col.key}>
-                  {col.transform ? col.transform(item[col.key]) : item[col.key]}
+                  {col.transform
+                    ? col.transform(item[col.key], item)
+                    : item[col.key]}
                 </Table.Td>
               ))}
               <Table.Td>
@@ -199,7 +200,7 @@ export default function DefaultCRUDPage({
                 key={field.key}
                 label={field.label}
                 placeholder={`Digite ${field.label.toLowerCase()}`}
-                type={field.type || "text"} // Mantém o `type` para outros inputs (ex: number, password)
+                type={field.type || "text"}
                 value={formValues[field.key]}
                 onChange={(e) =>
                   setFormValues({ ...formValues, [field.key]: e.target.value })
