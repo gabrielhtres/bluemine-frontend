@@ -1,6 +1,12 @@
 import DefaultCRUDPage from "../DefaultCRUDPage";
 
 export default function UsersPage() {
+  const roleTranslate = {
+    admin: "Administrador",
+    manager: "Gerente",
+    developer: "Desenvolvedor",
+  };
+
   return (
     <DefaultCRUDPage
       disableAdd
@@ -9,7 +15,11 @@ export default function UsersPage() {
       columns={[
         { key: "name", label: "Nome" },
         { key: "email", label: "Email" },
-        { key: "role", label: "Cargo" },
+        {
+          key: "role",
+          label: "Cargo",
+          transform: (role) => roleTranslate[role] || role,
+        },
       ]}
       modalFields={[
         { key: "name", label: "Nome" },

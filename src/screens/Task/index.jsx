@@ -55,7 +55,7 @@ export default function TasksPage() {
   return (
     <DefaultCRUDPage
       apiRoute="/task"
-      title="Tasks"
+      title="Tarefas"
       columns={[
         { key: "title", label: "Título" },
         { key: "description", label: "Descrição" },

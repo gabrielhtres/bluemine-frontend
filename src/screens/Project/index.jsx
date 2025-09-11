@@ -3,6 +3,7 @@ import { Button, Group, Modal, Stack, Select, ActionIcon } from "@mantine/core";
 import { IconUserPlus, IconTrash } from "@tabler/icons-react";
 import DefaultCRUDPage from "../DefaultCRUDPage";
 import api from "../../services/api";
+import showDefaultNotification from "../../utils/showDefaultNotification";
 
 export default function ProjectsPage() {
   const translateStatus = {
@@ -17,6 +18,7 @@ export default function ProjectsPage() {
   const [allDevelopers, setAllDevelopers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [assignments, setAssignments] = useState([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const roleOptions = [
     { value: "viewer", label: "Visualizador" },
@@ -42,7 +44,6 @@ export default function ProjectsPage() {
   }, []);
 
   const handleOpenAssignModal = (project) => {
-    console.log("project", project);
     setSelectedProject(project);
     const initialAssignments =
       project.developers?.map((dev) => ({
@@ -83,12 +84,21 @@ export default function ProjectsPage() {
     };
 
     try {
-      const response = await api.post("/project-member", payload);
-      console.log("response", response.data);
+      await api.post("/project-member", payload);
       setAssignModalOpened(false);
-      setAssignments(response.data);
+      showDefaultNotification({
+        title: "Sucesso!",
+        message: "Desenvolvedores atribuídos com sucesso.",
+        type: "success",
+      });
+      setRefreshKey((prevKey) => prevKey + 1);
     } catch (error) {
       console.error("Erro ao atribuir desenvolvedores:", error);
+      showDefaultNotification({
+        title: "Erro",
+        message: "Falha ao atribuir desenvolvedores.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -99,6 +109,7 @@ export default function ProjectsPage() {
       <DefaultCRUDPage
         apiRoute="/project"
         title="Projetos"
+        onRefresh={refreshKey}
         columns={[
           { key: "name", label: "Nome" },
           { key: "description", label: "Descrição" },
@@ -162,39 +173,49 @@ export default function ProjectsPage() {
         centered
       >
         <Stack>
-          {assignments.map((assignment, index) => (
-            <Group key={assignment.key} grow align="flex-end">
-              <Select
-                label={index === 0 ? "Desenvolvedor" : null}
-                placeholder="Selecione um dev"
-                data={allDevelopers}
-                value={String(assignment.developerId)}
-                onChange={(value) =>
-                  handleAssignmentChange(
-                    assignment.key,
-                    "developerId",
-                    Number(value)
-                  )
-                }
-                searchable
-              />
-              <Select
-                label={index === 0 ? "Papel" : null}
-                data={roleOptions}
-                value={assignment.role}
-                onChange={(value) =>
-                  handleAssignmentChange(assignment.key, "role", value)
-                }
-              />
-              <ActionIcon
-                color="red"
-                variant="subtle"
-                onClick={() => handleRemoveAssignment(assignment.key)}
-              >
-                <IconTrash size={20} />
-              </ActionIcon>
-            </Group>
-          ))}
+          {assignments.map((assignment, index) => {
+            const selectedDeveloperIds = assignments
+              .filter((a) => a.key !== assignment.key)
+              .map((a) => String(a.developerId));
+
+            const availableDevelopers = allDevelopers.filter(
+              (dev) => !selectedDeveloperIds.includes(dev.value)
+            );
+
+            return (
+              <Group key={assignment.key} grow align="flex-end">
+                <Select
+                  label={index === 0 ? "Desenvolvedor" : null}
+                  placeholder="Selecione um dev"
+                  data={availableDevelopers}
+                  value={String(assignment.developerId)}
+                  onChange={(value) =>
+                    handleAssignmentChange(
+                      assignment.key,
+                      "developerId",
+                      Number(value)
+                    )
+                  }
+                  searchable
+                />
+                <Select
+                  label={index === 0 ? "Papel" : null}
+                  data={roleOptions}
+                  value={assignment.role}
+                  onChange={(value) =>
+                    handleAssignmentChange(assignment.key, "role", value)
+                  }
+                />
+                <ActionIcon
+                  color="red"
+                  variant="subtle"
+                  onClick={() => handleRemoveAssignment(assignment.key)}
+                >
+                  <IconTrash size={20} />
+                </ActionIcon>
+              </Group>
+            );
+          })}
 
           <Button
             leftSection={<IconUserPlus size={16} />}

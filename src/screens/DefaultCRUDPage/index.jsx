@@ -22,6 +22,7 @@ export default function DefaultCRUDPage({
   title = "Gestão",
   renderActions,
   disableAdd,
+  onRefresh,
 }) {
   const [data, setData] = useState([]);
   const [pageLoading, setPageLoading] = useState(true);
@@ -50,7 +51,7 @@ export default function DefaultCRUDPage({
 
   useEffect(() => {
     fetchData();
-  }, [apiRoute]);
+  }, [apiRoute, onRefresh]);
 
   const handleAdd = () => {
     setEditingItem(null);
@@ -240,7 +241,7 @@ export default function DefaultCRUDPage({
                   label={field.label}
                   placeholder={`Selecione ${field.label.toLowerCase()}`}
                   data={field.options || []}
-                  value={formValues[field.key]}
+                  value={String(formValues[field.key])}
                   onChange={(val) =>
                     setFormValues({ ...formValues, [field.key]: val })
                   }
