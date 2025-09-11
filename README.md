@@ -15,7 +15,7 @@ Este é o repositório do frontend do Bluemine, um sistema de gestão de projeto
 
 - **CRUD de Projetos:** Gerentes podem criar, visualizar, editar e excluir projetos.
 - **Atribuição de Desenvolvedores:** Gerentes podem atribuir desenvolvedores a projetos específicos, definindo seus papéis (Visualizador, Colaborador, Mantenedor).
-- **CRUD de Tarefas:** Gerentes e administradores podem criar, visualizar, editar e excluir tarefas, atribuindo-as a projetos e a um desenvolvedor responsável.
+- **CRUD de Tarefas:** Gerentes podem criar, visualizar, editar e excluir tarefas, atribuindo-as a projetos e a um desenvolvedor responsável.
 - **Visualização de Tarefas (Kanban):** Desenvolvedores têm uma tela "Minhas Tarefas" no estilo Kanban, onde podem visualizar suas tarefas e alterar o status (A Fazer, Em Progresso, Revisão, Concluído) arrastando e soltando ou por um seletor.
 
 ### Dashboards
