@@ -1,6 +1,7 @@
 import { Paper, Text, Group } from "@mantine/core";
 import classes from "./StatCard.module.css";
 
+// eslint-disable-next-line no-unused-vars
 export function StatCard({ title, value, icon: Icon }) {
   return (
     <Paper withBorder p="md" radius="md" className={classes.card}>
