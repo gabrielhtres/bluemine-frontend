@@ -18,7 +18,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
@@ -64,12 +63,6 @@ export default function RegisterPage() {
           <Title order={2} align="center" style={{ color: "#1c7ed6" }}>
             Registre-se
           </Title>
-
-          {error && (
-            <Text color="red" align="center">
-              {error}
-            </Text>
-          )}
 
           <form onSubmit={handleRegister}>
             <Stack>

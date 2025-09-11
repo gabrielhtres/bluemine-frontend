@@ -14,7 +14,6 @@ import {
   IconFlag,
 } from "@tabler/icons-react";
 import dayjs from "dayjs";
-import classes from "./MyTasks.module.css";
 
 const priorityConfig = {
   low: { label: "Baixa", color: "gray", icon: <IconFlag size={14} /> },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Table,
   Button,
@@ -31,7 +31,7 @@ export default function DefaultCRUDPage({
   const [formValues, setFormValues] = useState({});
   const [saveLoading, setSaveLoading] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setPageLoading(true);
     try {
       const response = await api.get(apiRoute);
@@ -47,11 +47,11 @@ export default function DefaultCRUDPage({
     } finally {
       setPageLoading(false);
     }
-  };
+  }, [apiRoute]);
 
   useEffect(() => {
     fetchData();
-  }, [apiRoute, onRefresh]);
+  }, [apiRoute, onRefresh, fetchData]);
 
   const handleAdd = () => {
     setEditingItem(null);
