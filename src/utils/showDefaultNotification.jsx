@@ -6,7 +6,6 @@ export default function showDefaultNotification({
   message = "Erro ao processar sua requisição. Tente novamente mais tarde.",
   type,
 }) {
-  console.log("veio aq");
   notifications.show({
     title,
     message,

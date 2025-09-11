@@ -8,6 +8,8 @@ import {
   Stack,
   Select,
   LoadingOverlay,
+  Center,
+  Loader,
 } from "@mantine/core";
 import api from "../../services/api";
 import { DatePickerInput } from "@mantine/dates";
@@ -19,6 +21,7 @@ export default function DefaultCRUDPage({
   modalFields,
   title = "Gestão",
   renderActions,
+  disableAdd,
 }) {
   const [data, setData] = useState([]);
   const [pageLoading, setPageLoading] = useState(true);
@@ -132,7 +135,13 @@ export default function DefaultCRUDPage({
     }
   };
 
-  if (loading) return <div>Carregando...</div>;
+  if (pageLoading) {
+    return (
+      <Center style={{ height: "100%" }}>
+        <Loader />
+      </Center>
+    );
+  }
 
   if (
     !columns ||
@@ -145,12 +154,12 @@ export default function DefaultCRUDPage({
   return (
     <Stack p="md" style={{ position: "relative" }}>
       <LoadingOverlay
-        visible={loading}
+        visible={pageLoading}
         overlayProps={{ radius: "sm", blur: 2 }}
       />
       <Group justify="space-between">
         <h2>{title}</h2>
-        <Button onClick={handleAdd}>Adicionar</Button>
+        {!disableAdd && <Button onClick={handleAdd}>Adicionar</Button>}
       </Group>
 
       <div style={{ position: "relative" }}>

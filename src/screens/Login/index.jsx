@@ -22,7 +22,6 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
-    console.log("vtnc");
     e.preventDefault();
     setLoading(true);
 
@@ -46,7 +45,6 @@ export default function LoginPage() {
         type: "error",
       });
     } finally {
-      console.log("veio no finally");
       setLoading(false);
     }
   };

@@ -23,7 +23,7 @@ export default function TasksPage() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await api.get("/user");
+        const response = await api.get("/user/by-role/developer");
         const options = response.data.map((user) => ({
           value: user.id.toString(),
           label: user.name,

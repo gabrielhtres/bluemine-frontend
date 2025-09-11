@@ -3,6 +3,7 @@ import DefaultCRUDPage from "../DefaultCRUDPage";
 export default function UsersPage() {
   return (
     <DefaultCRUDPage
+      disableAdd
       apiRoute="/user"
       title="Usuários"
       columns={[
