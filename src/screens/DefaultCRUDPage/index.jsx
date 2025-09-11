@@ -7,9 +7,11 @@ import {
   TextInput,
   Stack,
   Select,
+  LoadingOverlay,
 } from "@mantine/core";
 import api from "../../services/api";
 import { DatePickerInput } from "@mantine/dates";
+import showDefaultNotification from "../../utils/showDefaultNotification";
 
 export default function DefaultCRUDPage({
   apiRoute,
@@ -19,21 +21,27 @@ export default function DefaultCRUDPage({
   renderActions,
 }) {
   const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [opened, setOpened] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formValues, setFormValues] = useState({});
+  const [saveLoading, setSaveLoading] = useState(false);
 
   const fetchData = async () => {
-    setLoading(true);
-
+    setPageLoading(true);
     try {
       const response = await api.get(apiRoute);
       setData(response.data);
     } catch (error) {
       console.error(error);
+      showDefaultNotification({
+        title: "Erro ao buscar dados",
+        message:
+          "Não foi possível carregar os dados. Tente novamente mais tarde.",
+        type: "error",
+      });
     } finally {
-      setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -64,6 +72,7 @@ export default function DefaultCRUDPage({
   };
 
   const handleSave = async () => {
+    setSaveLoading(true);
     try {
       const submissionData = { ...formValues };
 
@@ -83,8 +92,22 @@ export default function DefaultCRUDPage({
       }
       setOpened(false);
       fetchData();
+      showDefaultNotification({
+        title: "Sucesso!",
+        message: `${title.slice(0, -1)} ${
+          editingItem ? "atualizado" : "criado"
+        } com sucesso.`,
+        type: "success",
+      });
     } catch (error) {
       console.error(error);
+      showDefaultNotification({
+        title: "Erro ao salvar",
+        message: error.response?.data?.message || "Ocorreu um erro inesperado.",
+        type: "error",
+      });
+    } finally {
+      setSaveLoading(false);
     }
   };
 
@@ -92,9 +115,20 @@ export default function DefaultCRUDPage({
     if (!window.confirm("Tem certeza que deseja excluir?")) return;
     try {
       await api.delete(`${apiRoute}/${id}`);
+      showDefaultNotification({
+        title: "Sucesso!",
+        message: "Item excluído com sucesso.",
+        type: "success",
+      });
       fetchData();
     } catch (error) {
       console.error(error);
+      showDefaultNotification({
+        title: "Erro ao excluir",
+        message:
+          error.response?.data?.message || "Não foi possível excluir o item.",
+        type: "error",
+      });
     }
   };
 
@@ -109,53 +143,63 @@ export default function DefaultCRUDPage({
     return "";
 
   return (
-    <Stack p="md">
+    <Stack p="md" style={{ position: "relative" }}>
+      <LoadingOverlay
+        visible={loading}
+        overlayProps={{ radius: "sm", blur: 2 }}
+      />
       <Group justify="space-between">
         <h2>{title}</h2>
         <Button onClick={handleAdd}>Adicionar</Button>
       </Group>
 
-      <Table striped highlightOnHover withColumnBorders>
-        <Table.Thead>
-          <Table.Tr>
-            {columns.map((col) => (
-              <Table.Th key={col.key}>{col.label}</Table.Th>
-            ))}
-            <Table.Th>Ações</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {data.map((item) => (
-            <Table.Tr key={item.id}>
+      <div style={{ position: "relative" }}>
+        <LoadingOverlay
+          visible={pageLoading}
+          overlayProps={{ radius: "sm", blur: 2 }}
+        />
+        <Table striped highlightOnHover withColumnBorders>
+          <Table.Thead>
+            <Table.Tr>
               {columns.map((col) => (
-                <Table.Td key={col.key}>
-                  {col.transform
-                    ? col.transform(item[col.key], item)
-                    : item[col.key]}
-                </Table.Td>
+                <Table.Th key={col.key}>{col.label}</Table.Th>
               ))}
-              <Table.Td>
-                {renderActions ? (
-                  renderActions(item, { handleEdit, handleDelete })
-                ) : (
-                  <Group gap="xs">
-                    <Button size="xs" onClick={() => handleEdit(item)}>
-                      Editar
-                    </Button>
-                    <Button
-                      size="xs"
-                      color="red"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      Excluir
-                    </Button>
-                  </Group>
-                )}
-              </Table.Td>
+              <Table.Th>Ações</Table.Th>
             </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
+          </Table.Thead>
+          <Table.Tbody>
+            {data.map((item) => (
+              <Table.Tr key={item.id}>
+                {columns.map((col) => (
+                  <Table.Td key={col.key}>
+                    {col.transform
+                      ? col.transform(item[col.key], item)
+                      : item[col.key]}
+                  </Table.Td>
+                ))}
+                <Table.Td>
+                  {renderActions ? (
+                    renderActions(item, { handleEdit, handleDelete })
+                  ) : (
+                    <Group gap="xs">
+                      <Button size="xs" onClick={() => handleEdit(item)}>
+                        Editar
+                      </Button>
+                      <Button
+                        size="xs"
+                        color="red"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        Excluir
+                      </Button>
+                    </Group>
+                  )}
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </div>
 
       <Modal
         opened={opened}
@@ -209,7 +253,7 @@ export default function DefaultCRUDPage({
             );
           })}
           <Group justify="flex-end" mt="md">
-            <Button onClick={handleSave}>
+            <Button onClick={handleSave} loading={saveLoading}>
               {editingItem ? "Salvar Alterações" : "Adicionar"}
             </Button>
           </Group>

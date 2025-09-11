@@ -35,7 +35,12 @@ export function TaskCard({ task, onStatusChange }) {
   const priority = priorityConfig[task.priority] || priorityConfig.low;
 
   return (
-    <Card withBorder radius="md" shadow="sm" className={classes.card}>
+    <Card
+      withBorder
+      radius="md"
+      shadow="sm"
+      className="transition-all duration-200 hover:shadow-xl hover:-translate-y-1"
+    >
       <Group justify="space-between" mb="xs">
         <Text fw={500} size="lg">
           {task.title}

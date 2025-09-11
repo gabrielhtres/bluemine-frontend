@@ -78,7 +78,7 @@ function App() {
         collapsed: { mobile: !opened },
       }}
     >
-      <AppShell.Header>
+      <AppShell.Header className="border-b border-solid border-gray-200">
         <Group h="100%" px="md" justify="space-between">
           <Group>
             <Burger
@@ -144,7 +144,7 @@ function App() {
         </Stack>
       </AppShell.Navbar>
 
-      <AppShell.Main>
+      <AppShell.Main className="bg-gray-50">
         <Outlet />
       </AppShell.Main>
     </AppShell>

@@ -55,13 +55,14 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const { refreshToken } = useAuthStore.getState();
-      if (!refreshToken) {
-        useAuthStore.getState().logout();
-        return Promise.reject(error);
-      }
-
       try {
+        const { refreshToken } = useAuthStore.getState();
+
+        if (!refreshToken) {
+          useAuthStore.getState().logout();
+          return Promise.reject(error);
+        }
+
         const { data } = await api.post('/auth/refresh', {}, {
           headers: { Authorization: `Bearer ${refreshToken}` },
         });
@@ -76,7 +77,6 @@ api.interceptors.response.use(
         originalRequest.headers['Authorization'] = `Bearer ${data.accessToken}`;
 
         processQueue(null, data.accessToken);
-        
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);

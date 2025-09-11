@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   TextInput,
   PasswordInput,
@@ -12,19 +12,19 @@ import {
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
+import showDefaultNotification from "../../utils/showDefaultNotification";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const setAuth = useAuthStore((state) => state.setAuth);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
+    console.log("vtnc");
     e.preventDefault();
     setLoading(true);
-    setError(null);
 
     try {
       const response = await api.post("/auth/login", { email, password });
@@ -39,8 +39,14 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Erro ao fazer login");
+      showDefaultNotification({
+        title: "Erro de autenticação",
+        message:
+          err.response?.data?.message.message || "Email ou senha inválidos.",
+        type: "error",
+      });
     } finally {
+      console.log("veio no finally");
       setLoading(false);
     }
   };
@@ -62,12 +68,6 @@ export default function LoginPage() {
           <Title order={2} align="center" style={{ color: "#1c7ed6" }}>
             BLUEMINE
           </Title>
-
-          {error && (
-            <Text color="red" align="center">
-              {error}
-            </Text>
-          )}
 
           <form onSubmit={handleLogin}>
             <Stack>

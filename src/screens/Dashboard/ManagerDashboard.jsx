@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Grid, Paper, Title, Text, Stack } from "@mantine/core";
+import { Grid, Paper, Title, Text, Stack, Center, Loader } from "@mantine/core";
 import { BarChart, PieChart } from "@mantine/charts";
 import api from "../../services/api";
 import { StatCard } from "./StatCard";
@@ -13,9 +13,11 @@ export function ManagerDashboard() {
   });
   const [projectStatusData, setProjectStatusData] = useState([]);
   const [tasksPerProjectData, setTasksPerProjectData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
+      setLoading(true);
       try {
         const [projectRes, taskRes] = await Promise.all([
           api.get("/project/my-projects"),
@@ -90,14 +92,27 @@ export function ManagerDashboard() {
         );
       } catch (error) {
         console.error("Erro ao carregar dados do dashboard:", error);
+      } finally {
+        setLoading(false);
       }
     }
     fetchData();
   }, []);
 
+  if (loading) {
+    return (
+      <Center style={{ height: "100%" }}>
+        <Loader />
+      </Center>
+    );
+  }
+
   return (
-    <Stack gap="xl">
-      <Title order={2}>Dashboard Gerencial</Title>
+    <Stack gap="xl" className="p-4 md:p-6">
+      <Title order={2} className="text-2xl font-bold text-gray-800">
+        Dashboard Gerencial
+      </Title>
+
       <Grid>
         <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
           <StatCard

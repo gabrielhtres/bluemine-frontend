@@ -11,6 +11,7 @@ import {
 } from "@mantine/core";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import showDefaultNotification from "../../utils/showDefaultNotification";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -23,14 +24,24 @@ export default function RegisterPage() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
 
     try {
       await api.post("/auth/register", { name, email, password });
+      showDefaultNotification({
+        title: "Cadastro realizado!",
+        message: "Você já pode fazer login com suas credenciais.",
+        type: "success",
+      });
       navigate("/login");
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Erro ao registrar usuário");
+      showDefaultNotification({
+        title: "Erro no cadastro",
+        message:
+          err.response?.data?.message.message ||
+          "Não foi possível criar o usuário.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }

@@ -8,6 +8,8 @@ import {
   Card,
   Badge,
   Group,
+  Center,
+  Loader,
 } from "@mantine/core";
 import { DonutChart } from "@mantine/charts";
 import api from "../../services/api";
@@ -17,14 +19,18 @@ import dayjs from "dayjs";
 
 export function DeveloperDashboard() {
   const [myTasks, setMyTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchMyTasks() {
+      setLoading(true);
       try {
         const response = await api.get("/task/my-tasks");
         setMyTasks(response.data);
       } catch (error) {
         console.error("Erro ao buscar minhas tarefas:", error);
+      } finally {
+        setLoading(false);
       }
     }
     fetchMyTasks();
@@ -62,6 +68,14 @@ export function DeveloperDashboard() {
     .filter((t) => t.dueDate && dayjs(t.dueDate).isAfter(dayjs()))
     .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
     .slice(0, 5);
+
+  if (loading) {
+    return (
+      <Center style={{ height: "100%" }}>
+        <Loader />
+      </Center>
+    );
+  }
 
   return (
     <Stack gap="xl">
