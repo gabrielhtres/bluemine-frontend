@@ -31,10 +31,10 @@ export default function LoginPage() {
 
       setAuth({ accessToken, refreshToken, permissions, user });
 
-      if (permissions.includes("manager") || permissions.includes("admin")) {
+      if (permissions.includes("tasks") || permissions.includes("admin")) {
         navigate("/projects");
       } else {
-        navigate("/my-tasks");
+        navigate("/tasks");
       }
     } catch (err) {
       console.error(err);

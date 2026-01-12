@@ -1,245 +1,146 @@
 import { useState, useEffect } from "react";
-import { Button, Group, Modal, Stack, Select, ActionIcon } from "@mantine/core";
-import { IconUserPlus, IconTrash } from "@tabler/icons-react";
-import DefaultCRUDPage from "../DefaultCRUDPage";
+import { Button, Group, Modal, Stack, Title, TextInput, Select, Textarea, LoadingOverlay } from "@mantine/core";
+import { DatePickerInput } from "@mantine/dates";
+import { useDisclosure } from "@mantine/hooks";
+import { IconPlus } from "@tabler/icons-react";
 import api from "../../services/api";
 import showDefaultNotification from "../../utils/showDefaultNotification";
+import { ProjectCard } from "./ProjectCard"; // Cria este ficheiro
+import { AssignMembersModal } from "./AssignMembersModal"; // Extrai a lógica do modal para fora
 
 export default function ProjectsPage() {
-  const translateStatus = {
-    planned: "Planejado",
-    active: "Ativo",
-    completed: "Concluído",
-    cancelled: "Cancelado",
-  };
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [isFormOpen, { open: openForm, close: closeForm }] = useDisclosure(false);
+  const [assignModalOpen, setAssignModalOpened] = useState(false);
+  
+  const [editingProject, setEditingProject] = useState(null);
+  const [selectedProjectForAssign, setSelectedProjectForAssign] = useState(null);
 
-  const [assignModalOpened, setAssignModalOpened] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [allDevelopers, setAllDevelopers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [assignments, setAssignments] = useState([]);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [formData, setFormData] = useState({ name: "", description: "", status: "planned", startDate: null, endDate: null });
 
-  const roleOptions = [
-    { value: "viewer", label: "Visualizador" },
-    { value: "contributor", label: "Colaborador" },
-    { value: "maintainer", label: "Mantenedor" },
-  ];
-
-  const fetchDevelopers = async () => {
-    try {
-      const response = await api.get("/user/by-role/developer");
-      const formattedDevs = response.data.map((dev) => ({
-        value: String(dev.id),
-        label: dev.name,
-      }));
-      setAllDevelopers(formattedDevs);
-    } catch (error) {
-      console.error("Erro ao buscar desenvolvedores:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchDevelopers();
-  }, []);
-
-  const handleOpenAssignModal = (project) => {
-    setSelectedProject(project);
-    const initialAssignments =
-      project.developers?.map((dev) => ({
-        key: Math.random(),
-        developerId: dev.id,
-        role: dev.ProjectMember.role,
-      })) || [];
-    setAssignments(initialAssignments);
-    setAssignModalOpened(true);
-  };
-
-  const handleAddAssignment = () => {
-    setAssignments([
-      ...assignments,
-      { key: Math.random(), developerId: "", role: "viewer" },
-    ]);
-  };
-
-  const handleRemoveAssignment = (key) => {
-    setAssignments(assignments.filter((a) => a.key !== key));
-  };
-
-  const handleAssignmentChange = (key, field, value) => {
-    setAssignments(
-      assignments.map((a) => (a.key === key ? { ...a, [field]: value } : a))
-    );
-  };
-
-  const handleAssignDevelopers = async () => {
-    if (!selectedProject) return;
+  const fetchProjects = async () => {
     setLoading(true);
-
-    const payload = {
-      projectId: selectedProject.id,
-      assignments: assignments
-        .filter((a) => a.developerId)
-        .map(({ key, ...rest }) => rest),
-    };
-
     try {
-      await api.post("/project-member", payload);
-      setAssignModalOpened(false);
-      showDefaultNotification({
-        title: "Sucesso!",
-        message: "Desenvolvedores atribuídos com sucesso.",
-        type: "success",
-      });
-      setRefreshKey((prevKey) => prevKey + 1);
+      const { data } = await api.get("/project"); // Assume que o backend retorna os developers incluídos
+      setProjects(data);
     } catch (error) {
-      console.error("Erro ao atribuir desenvolvedores:", error);
-      showDefaultNotification({
-        title: "Erro",
-        message: "Falha ao atribuir desenvolvedores.",
-        type: "error",
-      });
+      console.error(error);
+      showDefaultNotification({ title: "Erro", message: "Falha ao carregar projetos", type: "error" });
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const handleCreate = () => {
+    setEditingProject(null);
+    setFormData({ name: "", description: "", status: "planned", startDate: null, endDate: null });
+    openForm();
+  };
+
+  const handleEdit = (project) => {
+    setEditingProject(project);
+    setFormData({
+      ...project,
+      startDate: project.startDate ? new Date(project.startDate) : null,
+      endDate: project.endDate ? new Date(project.endDate) : null,
+    });
+    openForm();
+  };
+
+  const handleSave = async () => {
+    try {
+      if (editingProject) {
+        await api.put(`/project/${editingProject.id}`, formData);
+      } else {
+        await api.post("/project", formData);
+      }
+      showDefaultNotification({ title: "Sucesso", message: "Projeto salvo.", type: "success" });
+      closeForm();
+      fetchProjects();
+    } catch (error) {
+        showDefaultNotification({ title: "Erro", message: "Erro ao salvar.", type: "error" });
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if(!window.confirm("Certeza?")) return;
+    try {
+        await api.delete(`/project/${id}`);
+        setProjects(projects.filter(p => p.id !== id));
+        showDefaultNotification({ title: "Sucesso", message: "Projeto removido.", type: "success" });
+    } catch (err) {
+        console.error(err);
+    }
+  }
+
+  const handleAssignClick = (project) => {
+    setSelectedProjectForAssign(project);
+    setAssignModalOpened(true);
+  }
+
   return (
-    <>
-      <DefaultCRUDPage
-        apiRoute="/project"
-        title="Projetos"
-        onRefresh={refreshKey}
-        columns={[
-          { key: "name", label: "Nome" },
-          { key: "description", label: "Descrição" },
-          {
-            key: "status",
-            label: "Status",
-            transform: (status) => translateStatus[status] || status,
-          },
-          {
-            key: "startDate",
-            label: "Data Início",
-            transform: (date) => new Date(date).toLocaleDateString(),
-          },
-          {
-            key: "endDate",
-            label: "Data Fim",
-            transform: (date) => new Date(date).toLocaleDateString(),
-          },
-        ]}
-        modalFields={[
-          { key: "name", label: "Nome" },
-          { key: "description", label: "Descrição" },
-          {
-            key: "status",
-            label: "Status",
-            type: "select",
-            options: [
-              { value: "planned", label: "Planejado" },
-              { value: "active", label: "Ativo" },
-              { value: "completed", label: "Concluído" },
-              { value: "cancelled", label: "Cancelado" },
-            ],
-          },
-          { key: "startDate", label: "Data Início", type: "date" },
-          { key: "endDate", label: "Data Fim", type: "date" },
-        ]}
-        renderActions={(item, { handleEdit, handleDelete }) => (
-          <Group gap="xs">
-            <Button
-              size="xs"
-              variant="default"
-              onClick={() => handleOpenAssignModal(item)}
-            >
-              <IconUserPlus size={14} />
-            </Button>
-            <Button size="xs" onClick={() => handleEdit(item)}>
-              Editar
-            </Button>
-            <Button size="xs" color="red" onClick={() => handleDelete(item.id)}>
-              Excluir
-            </Button>
-          </Group>
-        )}
-      />
+    <div className="w-full p-8 relative min-h-screen bg-gray-50">
+      <LoadingOverlay visible={loading} overlayProps={{ radius: "sm", blur: 2 }} />
+      
+      <div className="flex justify-between items-center mb-10">
+        <div>
+            <Title order={2}>Projetos</Title>
+            <p className="text-gray-500 text-sm mt-1">Gerencie o portfólio e equipas.</p>
+        </div>
+        <Button leftSection={<IconPlus size={16} />} onClick={handleCreate}>Novo Projeto</Button>
+      </div>
 
-      <Modal
-        opened={assignModalOpened}
-        onClose={() => setAssignModalOpened(false)}
-        title={`Atribuir Desenvolvedores para: ${selectedProject?.name || ""}`}
-        size="lg"
-        centered
-      >
+      <div className="flex flex-col gap-8 w-full">
+        {projects.map((project) => (
+          <ProjectCard 
+            key={project.id} 
+            project={project} 
+            onEdit={handleEdit} 
+            onDelete={handleDelete}
+            onAssign={handleAssignClick}
+          />
+        ))}
+      </div>
+
+      <Modal opened={isFormOpen} onClose={closeForm} title={editingProject ? "Editar Projeto" : "Novo Projeto"} centered>
         <Stack>
-          {assignments.map((assignment, index) => {
-            const selectedDeveloperIds = assignments
-              .filter((a) => a.key !== assignment.key)
-              .map((a) => String(a.developerId));
-
-            const availableDevelopers = allDevelopers.filter(
-              (dev) => !selectedDeveloperIds.includes(dev.value)
-            );
-
-            return (
-              <Group key={assignment.key} grow align="flex-end">
-                <Select
-                  label={index === 0 ? "Desenvolvedor" : null}
-                  placeholder="Selecione um dev"
-                  data={availableDevelopers}
-                  value={String(assignment.developerId)}
-                  onChange={(value) =>
-                    handleAssignmentChange(
-                      assignment.key,
-                      "developerId",
-                      Number(value)
-                    )
-                  }
-                  searchable
-                />
-                <Select
-                  label={index === 0 ? "Papel" : null}
-                  data={roleOptions}
-                  value={assignment.role}
-                  onChange={(value) =>
-                    handleAssignmentChange(assignment.key, "role", value)
-                  }
-                />
-                <ActionIcon
-                  color="red"
-                  variant="subtle"
-                  onClick={() => handleRemoveAssignment(assignment.key)}
-                >
-                  <IconTrash size={20} />
-                </ActionIcon>
-              </Group>
-            );
-          })}
-
-          <Button
-            leftSection={<IconUserPlus size={16} />}
-            variant="outline"
-            onClick={handleAddAssignment}
-            fullWidth
-            mt="md"
-          >
-            Adicionar Desenvolvedor
-          </Button>
-
-          <Group justify="flex-end" mt="xl">
-            <Button
-              variant="default"
-              onClick={() => setAssignModalOpened(false)}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleAssignDevelopers} loading={loading}>
-              Salvar Atribuições
-            </Button>
-          </Group>
+            <TextInput label="Nome" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
+            <Textarea label="Descrição" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+            <div className="grid grid-cols-2 gap-4">
+                <DatePickerInput label="Início" value={formData.startDate} onChange={(d) => setFormData({...formData, startDate: d})} />
+                <DatePickerInput label="Fim" value={formData.endDate} onChange={(d) => setFormData({...formData, endDate: d})} />
+            </div>
+            <Select 
+                label="Status" 
+                data={[
+                    { value: "planned", label: "Planejado" }, 
+                    { value: "active", label: "Ativo" },
+                    { value: "completed", label: "Concluído" },
+                    { value: "cancelled", label: "Cancelado" }
+                ]}
+                value={formData.status}
+                onChange={(v) => setFormData({...formData, status: v})}
+            />
+            <Button onClick={handleSave} fullWidth mt="md">Salvar</Button>
         </Stack>
       </Modal>
-    </>
+
+      {selectedProjectForAssign && (
+        <AssignMembersModal 
+            opened={assignModalOpen} 
+            onClose={() => {
+                setAssignModalOpened(false);
+                fetchProjects();
+            }} 
+            project={selectedProjectForAssign} 
+        />
+      )}
+    </div>
   );
 }

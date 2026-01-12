@@ -21,7 +21,7 @@ export function ManagerDashboard() {
       try {
         const [projectRes, taskRes] = await Promise.all([
           api.get("/project/my-projects"),
-          api.get("/task/my-tasks"),
+          api.get("/task/tasks"),
         ]);
 
         const projects = projectRes.data;

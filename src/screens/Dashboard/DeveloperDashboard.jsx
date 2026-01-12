@@ -25,7 +25,7 @@ export function DeveloperDashboard() {
     async function fetchMyTasks() {
       setLoading(true);
       try {
-        const response = await api.get("/task/my-tasks");
+        const response = await api.get("/task/tasks");
         setMyTasks(response.data);
       } catch (error) {
         console.error("Erro ao buscar minhas tarefas:", error);

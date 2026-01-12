@@ -51,7 +51,7 @@ function App() {
     },
     {
       label: "Tarefas",
-      path: "/my-tasks",
+      path: "/tasks",
       permission: "toggle_tasks",
       icon: IconListCheck,
     },
