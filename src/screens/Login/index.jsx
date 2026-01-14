@@ -9,39 +9,64 @@ import {
   Center,
   Text,
 } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
-import showDefaultNotification from "../../utils/showDefaultNotification";
+import showDefaultNotification, { extractErrorMessages } from "../../utils/showDefaultNotification";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const setAuth = useAuthStore((state) => state.setAuth);
   const navigate = useNavigate();
 
+  const form = useForm({
+    initialValues: { email: "", password: "" },
+    validate: {
+      email: (value) => {
+        if (!value) return "Email é obrigatório";
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) return "Email inválido";
+        return null;
+      },
+      password: (value) => (!value ? "Senha é obrigatória" : null),
+    },
+    validateInputOnBlur: true,
+  });
+
   const handleLogin = async (e) => {
     e.preventDefault();
+    const result = form.validate();
+    if (result.hasErrors) return;
+
     setLoading(true);
 
     try {
-      const response = await api.post("/auth/login", { email, password });
-      const { accessToken, refreshToken, permissions, user } = response.data;
+      const response = await api.post("/auth/login", {
+        email: form.values.email,
+        password: form.values.password,
+      });
+      const { accessToken, refreshToken, permissions, role, user, avatarUrl } = response.data;
 
-      setAuth({ accessToken, refreshToken, permissions, user });
+      const normalizedUser =
+        user && typeof user === "object"
+          ? { ...user, avatarUrl: user.avatarUrl || avatarUrl || null }
+          : { name: user, avatarUrl: avatarUrl || null };
 
-      if (permissions.includes("tasks") || permissions.includes("admin")) {
-        navigate("/projects");
-      } else {
-        navigate("/tasks");
-      }
+      setAuth({ accessToken, refreshToken, permissions, role, user: normalizedUser });
+
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error(err);
+
+      // tenta refletir no campo quando possível
+      const msgs = extractErrorMessages(err).join(" ").toLowerCase();
+      if (msgs.includes("email")) form.setFieldError("email", "Verifique o email informado");
+      if (msgs.includes("senha") || msgs.includes("password")) form.setFieldError("password", "Verifique a senha informada");
+
       showDefaultNotification({
         title: "Erro de autenticação",
-        message:
-          err.response?.data?.message.message || "Email ou senha inválidos.",
+        error: err,
+        message: "Email ou senha inválidos.",
         type: "error",
       });
     } finally {
@@ -71,18 +96,14 @@ export default function LoginPage() {
             <Stack>
               <TextInput
                 label="Email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                placeholder="Ex: maria@empresa.com"
+                {...form.getInputProps("email")}
                 radius="sm"
               />
               <PasswordInput
                 label="Senha"
-                placeholder="Digite sua senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                placeholder="Ex: ********"
+                {...form.getInputProps("password")}
                 radius="sm"
               />
               <Button

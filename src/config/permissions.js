@@ -1,6 +1,6 @@
 export const routePermissions = {
-  tasks: ['tasks', 'toggle_tasks'],
-  projects: ['projects'],
-  users: ['users'],
-  dashboard: ['dashboard'],
+  dashboard: ['admin', 'manager', 'developer'],
+  tasks: ['admin', 'manager', 'developer'],
+  projects: ['admin', 'manager'],
+  users: ['admin'],
 };

@@ -3,24 +3,23 @@ import { useAuthStore } from "../../store/authStore";
 import { routePermissions } from "../../config/permissions";
 
 export function ProtectedOutlet({ requiredPermission }) {
-  const { accessToken, permissions: userPermissions } = useAuthStore();
+  const { accessToken, role } = useAuthStore();
 
   if (!accessToken) {
     return <Navigate to="/login" replace />;
   }
 
+  const roleLower = (role || "")?.toLowerCase?.() || "";
+  const hasAdmin = roleLower === "admin";
+
   if (requiredPermission) {
-    const allowedPermissions = routePermissions[requiredPermission] || [
+    if (hasAdmin) return <Outlet />;
+
+    const allowedRoles = (routePermissions[requiredPermission] || [
       requiredPermission,
-    ];
+    ]).map((r) => r.toLowerCase());
 
-    const hasPermission = userPermissions?.some((permission) =>
-      allowedPermissions.includes(permission)
-    );
-
-    if (!hasPermission) {
-      return <Navigate to="/dashboard" replace />;
-    }
+    if (!allowedRoles.includes(roleLower)) return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;

@@ -29,11 +29,10 @@ export const router = createBrowserRouter([
     path: "/",
     element: <App />,
     children: [
+      protectedRoute("dashboard", <DashboardPage />, "dashboard"),
       protectedRoute("projects", <ProjectsPage />, "projects"),
       protectedRoute("tasks", <TasksPage />, "tasks"),
-      protectedRoute("tasks", <TasksPage />, "toggle_tasks"),
       protectedRoute("users", <UsersPage />, "users"),
-      protectedRoute("dashboard", <DashboardPage />, "dashboard"),
     ],
   },
 ]);

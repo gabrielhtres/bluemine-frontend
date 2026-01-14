@@ -4,9 +4,10 @@ import { DeveloperDashboard } from "./DeveloperDashboard";
 import { Center, Loader, Text } from "@mantine/core";
 
 export default function DashboardPage() {
-  const permissions = useAuthStore((state) => state.permissions);
+  const role = useAuthStore((state) => state.role);
+  const roleLower = (role || "")?.toLowerCase?.() || "";
 
-  if (!permissions || permissions.length === 0) {
+  if (!roleLower) {
     return (
       <Center h="100%">
         <Loader />
@@ -14,11 +15,11 @@ export default function DashboardPage() {
     );
   }
 
-  if (permissions.includes("projects")) {
+  if (roleLower === "admin" || roleLower === "manager") {
     return <ManagerDashboard />;
   }
 
-  if (permissions.includes("toggle_tasks")) {
+  if (roleLower === "developer") {
     return <DeveloperDashboard />;
   }
 

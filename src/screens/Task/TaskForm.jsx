@@ -1,13 +1,14 @@
+import { useMemo } from "react";
 import { useForm } from "@mantine/form";
-import { TextInput, Textarea, Select, Button, Group, Stack } from "@mantine/core";
+import { TextInput, Textarea, Select, Button, Group, Stack, Alert } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
 import { useAuthStore } from "../../store/authStore";
 
-// Recebe projects nas props agora
 export function TaskForm({ initialValues, onSubmit, onCancel, users = [], projects = [] }) {
-  const { permissions } = useAuthStore();
-  const isManager = permissions.includes("tasks");
-  const canEdit = isManager || !initialValues?.id; // Dev pode editar se for criação
+  const { role } = useAuthStore();
+  const roleLower = (role || "")?.toLowerCase?.() || "";
+  const isManager = roleLower === "admin" || roleLower === "manager";
+  const canEdit = isManager || !initialValues?.id;
 
   const form = useForm({
     initialValues: initialValues || {
@@ -17,30 +18,60 @@ export function TaskForm({ initialValues, onSubmit, onCancel, users = [], projec
       status: "todo",
       dueDate: new Date(),
       assigneeId: null,
-      projectId: null, // <--- NOVO
+      projectId: null,
     },
     validate: {
       title: (value) => (value.length < 3 ? "Título muito curto" : null),
-      projectId: (value) => (!value ? "Selecione um projeto" : null), // Validação
-      assigneeId: (value) => (!value ? "Selecione um responsável" : null), // Validação
+      projectId: (value) => (!value ? "Selecione um projeto" : null),
+      assigneeId: (value, values) => {
+        if (!value) return "Selecione um responsável";
+
+        const selectedProject = projects.find((p) => String(p.id) === String(values.projectId));
+        const teamFromProject = Array.isArray(selectedProject?.developers) ? selectedProject.developers : null;
+        const team = teamFromProject ?? (Array.isArray(users) ? users : []);
+        if (!selectedProject) return null; // sem projeto não validamos equipe aqui (projectId já valida)
+
+        if (!Array.isArray(team)) return null; // fallback defensivo
+        if (team.length === 0) return "Projeto sem equipe. Adicione membros ao projeto para atribuir.";
+
+        const allowed = new Set(team.map((d) => String(d.id)));
+        if (!allowed.has(String(value))) return "Responsável deve fazer parte da equipe do projeto";
+        return null;
+      },
     },
   });
 
+  const selectedProject = useMemo(
+    () => projects.find((p) => String(p.id) === String(form.values.projectId)),
+    [projects, form.values.projectId]
+  );
+
+  const assigneeOptions = useMemo(() => {
+    const team = Array.isArray(selectedProject?.developers) ? selectedProject.developers : users;
+    return (team || []).map((u) => ({ value: String(u.id), label: u.name }));
+  }, [selectedProject, users]);
+
+  const assigneeIsInTeam = useMemo(() => {
+    const team = Array.isArray(selectedProject?.developers) ? selectedProject.developers : users;
+    if (!Array.isArray(team)) return true;
+    if (!form.values.assigneeId) return true;
+    return team.some((d) => String(d.id) === String(form.values.assigneeId));
+  }, [selectedProject, users, form.values.assigneeId]);
+
   return (
     <form onSubmit={form.onSubmit(onSubmit)}>
-      <Stack>
+      <Stack spacing="md">
         <TextInput
           label="Título"
-          placeholder="O que precisa ser feito?"
+          placeholder="Ex: Ajustar validação do formulário"
           required
           disabled={!canEdit}
           {...form.getInputProps("title")}
         />
         
-        {/* NOVO: Seleção de Projeto */}
         <Select
             label="Projeto"
-            placeholder="Selecione o projeto"
+            placeholder="Ex: Projeto Apollo"
             data={projects.map(p => ({ value: String(p.id), label: p.name }))}
             disabled={!canEdit} 
             searchable
@@ -48,16 +79,35 @@ export function TaskForm({ initialValues, onSubmit, onCancel, users = [], projec
             {...form.getInputProps("projectId")}
         />
 
+        {isManager &&
+          form.values.projectId &&
+          assigneeOptions.length === 0 && (
+          <Alert color="yellow" title="Projeto sem equipe">
+            Para atribuir um responsável, adicione membros à equipe do projeto.
+          </Alert>
+        )}
+
+        {isManager && !assigneeIsInTeam && (
+          <Alert color="red" title="Responsável inválido">
+            O responsável atual não faz parte da equipe do projeto selecionado. Selecione um membro da equipe.
+          </Alert>
+        )}
+
         <Textarea
           label="Descrição"
           minRows={3}
           disabled={!canEdit}
+          placeholder="Ex: Validar email e senha e exibir mensagens amigáveis"
+          autosize
+          minLength={3}
+          description="Descreva o necessário para executar a tarefa."
           {...form.getInputProps("description")}
         />
 
         <Group grow>
           <Select
             label="Prioridade"
+            placeholder="Ex: Média"
             data={[
               { value: "low", label: "Baixa" },
               { value: "medium", label: "Média" },
@@ -70,6 +120,7 @@ export function TaskForm({ initialValues, onSubmit, onCancel, users = [], projec
           <DatePickerInput
             label="Data de Entrega"
             valueFormat="DD/MM/YYYY"
+            placeholder="Ex: 20/01/2026"
             disabled={!canEdit}
             {...form.getInputProps("dueDate")}
           />
@@ -77,18 +128,18 @@ export function TaskForm({ initialValues, onSubmit, onCancel, users = [], projec
 
         <Select
             label="Responsável"
-            placeholder="Selecione um dev"
-            data={users.map(u => ({ value: String(u.id), label: u.name }))}
-            disabled={!isManager} // Geralmente só gerente reatribui, mas ajuste se quiser
+            placeholder={selectedProject ? "Ex: Gabriel (membro do projeto)" : "Selecione um projeto primeiro"}
+            data={assigneeOptions}
+            disabled={!isManager || !form.values.projectId || assigneeOptions.length === 0}
             searchable
             required
             {...form.getInputProps("assigneeId")}
         />
 
-        {/* Status: Única coisa que talvez ambos mudem aqui, mas o card já resolve pro dev */}
         {isManager && (
              <Select
              label="Status Inicial"
+             placeholder="Ex: Em Progresso"
              data={[
                  { value: 'todo', label: 'A Fazer' },
                  { value: 'in_progress', label: 'Em Progresso' },

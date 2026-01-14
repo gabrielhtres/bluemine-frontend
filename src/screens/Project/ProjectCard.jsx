@@ -1,6 +1,7 @@
 import { Card, Text, Badge, Group, Avatar, Tooltip, ActionIcon, Menu } from "@mantine/core";
 import { IconCalendar, IconDots, IconEdit, IconTrash, IconUserPlus } from "@tabler/icons-react";
 import dayjs from "dayjs";
+import { resolveAssetUrl } from "../../utils/resolveAssetUrl";
 
 export function ProjectCard({ project, onEdit, onDelete, onAssign }) {
   const statusColors = {
@@ -71,7 +72,15 @@ export function ProjectCard({ project, onEdit, onDelete, onAssign }) {
             <Avatar.Group spacing="sm">
                 {project.developers?.slice(0, 3).map((dev) => (
                     <Tooltip key={dev.id} label={dev.name}>
-                        <Avatar src={null} radius="xl" size="sm" alt={dev.name} color="initials">{dev.name[0]}</Avatar>
+                        <Avatar
+                          src={resolveAssetUrl(dev.avatarUrl)}
+                          radius="xl"
+                          size="sm"
+                          alt={dev.name}
+                          color="initials"
+                        >
+                          {dev.name[0]}
+                        </Avatar>
                     </Tooltip>
                 ))}
                 {project.developers?.length > 3 && (
