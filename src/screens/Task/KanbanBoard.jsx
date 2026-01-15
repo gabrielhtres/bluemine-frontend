@@ -19,34 +19,22 @@ import { CSS } from "@dnd-kit/utilities";
 import { Paper, Text, Badge, Group, Avatar, ActionIcon, Menu, Portal } from "@mantine/core";
 import { IconDots, IconEdit, IconTrash, IconGripVertical } from "@tabler/icons-react";
 import dayjs from "dayjs";
-import { useAuthStore } from "../../store/authStore";
+import { useUserRole } from "../../hooks/useUserRole";
 import { resolveAssetUrl } from "../../utils/resolveAssetUrl";
+import { PRIORITY_COLORS, PRIORITY_LABELS, TASK_STATUS_LABELS, TASK_STATUS_COLORS } from "../../constants/status";
 
-const priorityColors = {
-  low: "gray",
-  medium: "blue",
-  high: "orange",
-  critical: "red",
-};
-
-const priorityLabels = {
-  low: "Baixa",
-  medium: "Média",
-  high: "Alta",
-  critical: "Crítica",
-};
+const priorityColors = PRIORITY_COLORS;
+const priorityLabels = PRIORITY_LABELS;
 
 const statusConfig = {
-  todo: { label: "A Fazer", color: "gray", bgColor: "bg-gray-50", borderColor: "border-gray-200" },
-  in_progress: { label: "Em Progresso", color: "blue", bgColor: "bg-blue-50", borderColor: "border-blue-200" },
-  review: { label: "Revisão", color: "yellow", bgColor: "bg-yellow-50", borderColor: "border-yellow-200" },
-  done: { label: "Concluído", color: "teal", bgColor: "bg-teal-50", borderColor: "border-teal-200" },
+  todo: { label: TASK_STATUS_LABELS.todo, color: TASK_STATUS_COLORS.todo, bgColor: "bg-gray-50", borderColor: "border-gray-200" },
+  in_progress: { label: TASK_STATUS_LABELS.in_progress, color: TASK_STATUS_COLORS.in_progress, bgColor: "bg-blue-50", borderColor: "border-blue-200" },
+  review: { label: TASK_STATUS_LABELS.review, color: TASK_STATUS_COLORS.review, bgColor: "bg-yellow-50", borderColor: "border-yellow-200" },
+  done: { label: TASK_STATUS_LABELS.done, color: TASK_STATUS_COLORS.done, bgColor: "bg-teal-50", borderColor: "border-teal-200" },
 };
 
 function SortableTaskCard({ task, onEdit, onDelete, isDragging }) {
-  const { role } = useAuthStore();
-  const roleLower = (role || "")?.toLowerCase?.() || "";
-  const isManager = roleLower === "admin" || roleLower === "manager";
+  const { isManager } = useUserRole();
 
   const {
     attributes,
@@ -183,9 +171,7 @@ function SortableTaskCard({ task, onEdit, onDelete, isDragging }) {
 }
 
 function TaskCardPlaceholder({ task }) {
-  const { role } = useAuthStore();
-  const roleLower = (role || "")?.toLowerCase?.() || "";
-  const isManager = roleLower === "admin" || roleLower === "manager";
+  const { isManager } = useUserRole();
 
   return (
     <Paper

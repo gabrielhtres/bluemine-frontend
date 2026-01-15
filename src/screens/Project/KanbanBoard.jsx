@@ -155,14 +155,14 @@ function SortableProjectCard({ project, onEdit, onDelete, onAssign, onTasks, isD
               <Tooltip.Group openDelay={300} closeDelay={100}>
                 <Avatar.Group spacing="sm">
                   {project.developers.slice(0, 3).map((dev) => (
-                    <Tooltip key={dev.id} label={dev.name}>
+                    <Tooltip key={dev.id} label={dev.name || "Sem nome"}>
                       <Avatar
                         src={resolveAssetUrl(dev.avatarUrl)}
                         radius="xl"
                         size="sm"
-                        alt={dev.name}
+                        alt={dev.name || "Usuário"}
                       >
-                        {dev.name[0]}
+                        {dev.name?.[0] || "?"}
                       </Avatar>
                     </Tooltip>
                   ))}
@@ -243,7 +243,7 @@ function ProjectCardPlaceholder({ project }) {
             <Avatar.Group spacing="sm">
               {project.developers.slice(0, 3).map((dev) => (
                 <Avatar key={dev.id} src={resolveAssetUrl(dev.avatarUrl)} radius="xl" size="sm">
-                  {dev.name[0]}
+                  {dev.name?.[0] || "?"}
                 </Avatar>
               ))}
               {project.developers.length > 3 && (

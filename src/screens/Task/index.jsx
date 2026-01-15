@@ -1,19 +1,19 @@
 import { useCallback, useMemo, useState, useEffect } from "react";
-import { Button, Modal, Title, LoadingOverlay, Group, Paper, TextInput, MultiSelect, Switch, SegmentedControl, Select } from "@mantine/core";
+import { Button, Modal, Title, LoadingOverlay, Group, Paper, TextInput, MultiSelect, Switch, SegmentedControl, Select, Stack, Text } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { DatePickerInput } from "@mantine/dates";
 import { useDisclosure } from "@mantine/hooks";
 import api from "../../services/api";
-import { useAuthStore } from "../../store/authStore";
+import { useUserRole } from "../../hooks/useUserRole";
+import { logger } from "../../utils/logger";
+import { prepareTaskPayload } from "../../utils/taskPayload";
 import { KanbanBoard } from "./KanbanBoard";
 import { TaskForm } from "./TaskForm";
 import showDefaultNotification from "../../utils/showDefaultNotification";
 import dayjs from "dayjs";
 
 export default function TasksPage() {
-  const { role } = useAuthStore();
-  const roleLower = (role || "")?.toLowerCase?.() || "";
-  const isManager = roleLower === "admin" || roleLower === "manager";
+  const { isManager } = useUserRole();
   
   const [viewScope, setViewScope] = useState(isManager ? "all" : "mine");
   
@@ -24,6 +24,8 @@ export default function TasksPage() {
   const [formLoading, setFormLoading] = useState(false);
   const [opened, { open, close }] = useDisclosure(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [deleteConfirmOpen, { open: openDeleteConfirm, close: closeDeleteConfirm }] = useDisclosure(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -33,7 +35,7 @@ export default function TasksPage() {
       setTasks(data);
 
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       showDefaultNotification({ 
         title: "Erro", 
         message: "Falha ao carregar dados", 
@@ -60,7 +62,7 @@ export default function TasksPage() {
       setProjects(projRes.data);
       setUsers(userRes.data);
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       showDefaultNotification({
         title: "Erro",
         message: "Falha ao carregar dados do formulário",
@@ -104,10 +106,10 @@ export default function TasksPage() {
       if (end && t.dueDate && dayjs(t.dueDate).isAfter(dayjs(end), "day")) return false;
 
       if (isManager && projectFilter) {
-        if (String(t.projectId) !== String(projectFilter)) return false;
+        if (!t.projectId || String(t.projectId) !== String(projectFilter)) return false;
       }
       if (isManager && assigneeFilter) {
-        if (String(t.assigneeId) !== String(assigneeFilter)) return false;
+        if (!t.assigneeId || String(t.assigneeId) !== String(assigneeFilter)) return false;
       }
 
       return true;
@@ -137,9 +139,14 @@ export default function TasksPage() {
   const handleEdit = async (task) => {
     try {
       await fetchFormDataIfNeeded();
+      // Passa apenas os campos necessários para o formulário
       setEditingTask({
-          ...task,
-          dueDate: new Date(task.dueDate),
+          id: task.id,
+          title: task.title || '',
+          description: task.description || '',
+          priority: task.priority || 'medium',
+          status: task.status || 'todo',
+          dueDate: task.dueDate ? (dayjs(task.dueDate).isValid() ? new Date(task.dueDate) : null) : null,
           assigneeId: task.assigneeId ? String(task.assigneeId) : null,
           projectId: task.projectId ? String(task.projectId) : null
       });
@@ -150,11 +157,8 @@ export default function TasksPage() {
   };
 
   const handleSave = async (values) => {
-    const payload = {
-        ...values,
-        projectId: Number(values.projectId),
-        assigneeId: Number(values.assigneeId),
-    };
+    // Prepara payload removendo propriedades read-only
+    const payload = prepareTaskPayload(values);
 
     try {
       if (editingTask?.id) {
@@ -166,7 +170,7 @@ export default function TasksPage() {
       close();
       fetchData();
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       showDefaultNotification({ 
           title: "Erro", 
           message: "Erro ao salvar.",
@@ -176,27 +180,43 @@ export default function TasksPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-      if(!window.confirm("Excluir tarefa permanentemente?")) return;
-      try {
-          await api.delete(`/task/${id}`);
-          setTasks(tasks.filter(t => t.id !== id));
-          showDefaultNotification({ title: "Sucesso", message: "Tarefa excluída.", type: "success" });
-      } catch (error) { 
-          console.error(error);
-          showDefaultNotification({ title: "Erro", message: "Não foi possível excluir.", type: "error", error });
-      }
+  const handleDeleteClick = (id) => {
+    setTaskToDelete(id);
+    openDeleteConfirm();
+  };
+
+  const handleDelete = async () => {
+    if (!taskToDelete) return;
+    const id = taskToDelete;
+    try {
+        await api.delete(`/task/${id}`);
+        setTasks(tasks.filter(t => t.id !== id));
+        showDefaultNotification({ title: "Sucesso", message: "Tarefa excluída.", type: "success" });
+        closeDeleteConfirm();
+        setTaskToDelete(null);
+    } catch (error) { 
+        logger.error(error);
+        showDefaultNotification({ title: "Erro", message: "Não foi possível excluir.", type: "error", error });
+        closeDeleteConfirm();
+        setTaskToDelete(null);
+    }
   }
 
   const handleStatusChange = async (taskId, newStatus) => {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      // Atualização otimista
       setTasks(current => current.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
       
       try {
           await api.patch(`/task/${taskId}/status`, { status: newStatus });
       } catch (error) {
-          console.error(error);
+          logger.error(error);
+          // Reverter atualização otimista apenas se a requisição falhar
+          setTasks(current => current.map(t => t.id === taskId ? { ...t, status: task.status } : t));
           showDefaultNotification({ title: "Erro", message: "Falha ao atualizar status", type: "error", error });
-          fetchData();
+          // Não fazer re-fetch completo - o estado já foi revertido
       }
   }
 
@@ -329,7 +349,7 @@ export default function TasksPage() {
           tasks={filteredTasks}
           onStatusChange={handleStatusChange}
           onEdit={handleEdit}
-          onDelete={handleDelete}
+          onDelete={handleDeleteClick}
         />
       </div>
 
@@ -344,6 +364,31 @@ export default function TasksPage() {
               projects={projects}
           />
         )}
+      </Modal>
+
+      <Modal
+        opened={deleteConfirmOpen}
+        onClose={() => {
+          closeDeleteConfirm();
+          setTaskToDelete(null);
+        }}
+        title="Confirmar exclusão"
+        centered
+      >
+        <Stack gap="md">
+          <Text>Tem certeza que deseja excluir esta tarefa? Esta ação não pode ser desfeita.</Text>
+          <Group justify="flex-end" gap="sm">
+            <Button variant="subtle" onClick={() => {
+              closeDeleteConfirm();
+              setTaskToDelete(null);
+            }}>
+              Cancelar
+            </Button>
+            <Button color="red" onClick={handleDelete}>
+              Excluir
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
     </div>
   );

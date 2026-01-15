@@ -15,6 +15,7 @@ import {
 import { DonutChart } from "@mantine/charts";
 import { DatePickerInput } from "@mantine/dates";
 import api from "../../services/api";
+import { logger } from "../../utils/logger";
 import { StatCard } from "./StatCard";
 import { IconList, IconPlayerPlay, IconClock } from "@tabler/icons-react";
 import dayjs from "dayjs";
@@ -72,7 +73,7 @@ export function DeveloperDashboard() {
         const { data } = await api.get("/dashboard", { params });
         setDashboard(data);
       } catch (error) {
-        console.error("Erro ao buscar dashboard:", error);
+        logger.error("Erro ao buscar dashboard:", error);
         showDefaultNotification({
           title: "Erro",
           message: "Não foi possível carregar o dashboard",

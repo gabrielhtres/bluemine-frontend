@@ -17,6 +17,7 @@ import {
 import { IconSearch, IconEdit } from "@tabler/icons-react";
 import api from "../../services/api";
 import showDefaultNotification from "../../utils/showDefaultNotification";
+import { logger } from "../../utils/logger";
 import { UserForm } from "./UserForm";
 
 const roleTranslate = {
@@ -46,7 +47,7 @@ export default function UsersPage() {
       const { data } = await api.get("/user");
       setUsers(data);
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       showDefaultNotification({
         title: "Erro",
         message: "Falha ao carregar usuários",
@@ -199,7 +200,7 @@ export default function UsersPage() {
                 setEditingUser(null);
                 fetchUsers();
               } catch (error) {
-                console.error(error);
+                logger.error(error);
                 showDefaultNotification({ title: "Erro", message: "Falha ao atualizar usuário.", type: "error", error });
               } finally {
                 setSaving(false);

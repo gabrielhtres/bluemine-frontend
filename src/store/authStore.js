@@ -8,6 +8,7 @@ const initialAuthState = {
   role: null,
   user: null,
   hasHydrated: false,
+  isLoggingOut: false,
 };
 
 export const useAuthStore = create(
@@ -16,14 +17,24 @@ export const useAuthStore = create(
       ...initialAuthState,
 
       setAuth: ({ accessToken, refreshToken, permissions, role, user }) => {
-        set({ accessToken, refreshToken, permissions, role, user });
+        set({ accessToken, refreshToken, permissions, role, user, isLoggingOut: false });
       },
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
 
-      logout: () => set({ ...initialAuthState, hasHydrated: true }),
+      logout: () => {
+        // Marca que está fazendo logout para evitar novas requisições
+        set({ ...initialAuthState, hasHydrated: true, isLoggingOut: true });
+        // Limpa após um pequeno delay para garantir que todas as requisições pendentes sejam canceladas
+        setTimeout(() => {
+          set({ ...initialAuthState, hasHydrated: true, isLoggingOut: false });
+        }, 100);
+      },
 
-      isAuthenticated: () => !!get().accessToken,
+      isAuthenticated: () => {
+        const state = get();
+        return !!state.accessToken && !state.isLoggingOut;
+      },
     }),
     {
       name: 'auth-storage',

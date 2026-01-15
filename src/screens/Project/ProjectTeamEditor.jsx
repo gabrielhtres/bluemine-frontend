@@ -57,14 +57,48 @@ export function ProjectTeamEditor({ project, onSaved }) {
     setAssignments((curr) => curr.map((a) => (a.localId === localId ? { ...a, [field]: value } : a)));
   };
 
+  const validateAssignments = () => {
+    // Verifica se há assignments sem developerId ou sem role
+    const invalid = assignments.filter((a) => !a.developerId || !a.role);
+    
+    if (invalid.length > 0) {
+      showDefaultNotification({
+        title: "Validação",
+        type: "error",
+        message: "Todos os membros devem ter um desenvolvedor e um papel selecionados.",
+      });
+      return false;
+    }
+
+    // Verifica se há developers duplicados
+    const developerIds = assignments.map((a) => a.developerId).filter(Boolean);
+    const uniqueIds = new Set(developerIds);
+    if (developerIds.length !== uniqueIds.size) {
+      showDefaultNotification({
+        title: "Validação",
+        type: "error",
+        message: "Não é possível adicionar o mesmo desenvolvedor mais de uma vez.",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSave = async () => {
     if (!project?.id) return;
+    
+    // Valida antes de salvar
+    if (!validateAssignments()) {
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
         projectId: project.id,
         assignments: assignments
-          .filter((a) => a.developerId)
+          .filter((a) => a.developerId && a.role)
           .map((a) => ({ developerId: Number(a.developerId), role: a.role })),
       };
 
@@ -89,8 +123,10 @@ export function ProjectTeamEditor({ project, onSaved }) {
             value={item.developerId}
             onChange={(v) => updateRow(item.localId, "developerId", v)}
             searchable
+            required
             disabled={loadingDevelopers}
             filter={({ options }) => options.filter((opt) => !selectedIds.includes(opt.value) || opt.value === item.developerId)}
+            error={!item.developerId ? "Selecione um desenvolvedor" : null}
           />
           <Select
             label="Papel no projeto"
@@ -102,6 +138,8 @@ export function ProjectTeamEditor({ project, onSaved }) {
             ]}
             value={item.role}
             onChange={(v) => updateRow(item.localId, "role", v)}
+            required
+            error={!item.role ? "Selecione um papel" : null}
           />
           <ActionIcon color="red" variant="subtle" onClick={() => removeRow(item.localId)} mb={4}>
             <IconTrash size={18} />

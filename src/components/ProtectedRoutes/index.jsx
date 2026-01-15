@@ -1,25 +1,28 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-import { routePermissions } from "../../config/permissions";
+import { canAccess } from "../../utils/permissions";
 
 export function ProtectedOutlet({ requiredPermission }) {
-  const { accessToken, role } = useAuthStore();
+  const { accessToken, refreshToken, role, hasHydrated } = useAuthStore();
 
-  if (!accessToken) {
+  // Aguarda a hidratação do store antes de verificar autenticação
+  if (!hasHydrated) {
+    return null; // ou um loader
+  }
+
+  // Se não tem accessToken nem refreshToken, redireciona para login
+  if (!accessToken && !refreshToken) {
     return <Navigate to="/login" replace />;
   }
 
-  const roleLower = (role || "")?.toLowerCase?.() || "";
-  const hasAdmin = roleLower === "admin";
+  // Se não tem accessToken mas tem refreshToken, aguarda o bootstrap fazer o refresh
+  // O bootstrap no App.jsx vai redirecionar se falhar
+  if (!accessToken) {
+    return null; // ou um loader
+  }
 
-  if (requiredPermission) {
-    if (hasAdmin) return <Outlet />;
-
-    const allowedRoles = (routePermissions[requiredPermission] || [
-      requiredPermission,
-    ]).map((r) => r.toLowerCase());
-
-    if (!allowedRoles.includes(roleLower)) return <Navigate to="/dashboard" replace />;
+  if (requiredPermission && !canAccess(role, requiredPermission)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;

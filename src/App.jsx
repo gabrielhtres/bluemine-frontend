@@ -27,8 +27,10 @@ import {
   IconBox,
 } from "@tabler/icons-react";
 import api from "./services/api";
-import { routePermissions } from "./config/permissions";
 import { resolveAssetUrl } from "./utils/resolveAssetUrl";
+import { normalizeUser } from "./utils/normalizeUser";
+import { canAccess, getRoleLower } from "./utils/permissions";
+import { logger } from "./utils/logger";
 
 function App() {
   const [opened, { toggle }] = useDisclosure();
@@ -37,8 +39,7 @@ function App() {
   const location = useLocation();
   const [authChecked, setAuthChecked] = useState(false);
 
-  const roleLower = (role || user?.role || "")?.toLowerCase?.() || "";
-  const hasAdmin = roleLower === "admin";
+  const roleLower = getRoleLower(role || user?.role);
   const userName =
     typeof user === "string" ? user : user?.name || user?.email || "Usuário";
   const userAvatarSrc =
@@ -61,20 +62,28 @@ function App() {
   useEffect(() => {
     async function bootstrapAuth() {
       if (!hasHydrated) return;
+      
+      // Se já tem accessToken válido, não precisa fazer refresh
       if (accessToken) {
         setAuthChecked(true);
         return;
       }
+      
+      // Se não tem refreshToken, limpa tudo e redireciona
       if (!refreshToken) {
+        logout();
         setAuthChecked(true);
+        // Aguarda um pouco para garantir que o logout foi processado
+        setTimeout(() => {
+          navigate("/login", { replace: true });
+        }, 100);
         return;
       }
+      
+      // Tenta fazer refresh do token
       try {
         const { data } = await api.post("/auth/refresh", {}, { headers: { Authorization: `Bearer ${refreshToken}` } });
-        const normalizedUser =
-          data.user && typeof data.user === "object"
-            ? { ...data.user, avatarUrl: data.user.avatarUrl || data.avatarUrl || null }
-            : { name: data.user, avatarUrl: data.avatarUrl || null };
+        const normalizedUser = normalizeUser(data.user, data.avatarUrl);
 
         setAuth({
           accessToken: data.accessToken,
@@ -83,15 +92,20 @@ function App() {
           role: data.role,
           user: normalizedUser,
         });
-      } catch (err) {
-        console.error("Falha ao renovar sessão inicial", err);
-        logout();
-      } finally {
         setAuthChecked(true);
+      } catch (err) {
+        logger.error("Falha ao renovar sessão inicial", err);
+        // Limpa a sessão completamente
+        logout();
+        setAuthChecked(true);
+        // Redireciona para login após limpar a sessão
+        setTimeout(() => {
+          navigate("/login", { replace: true });
+        }, 100);
       }
     }
     bootstrapAuth();
-  }, [hasHydrated, accessToken, refreshToken, logout, setAuth]);
+  }, [hasHydrated, accessToken, refreshToken, logout, setAuth, navigate]);
 
   const menuItems = [
     {
@@ -116,16 +130,14 @@ function App() {
   ];
 
   const canAccessMenuItem = (itemPermission) => {
-    if (hasAdmin) return true;
-    const allowedRoles = (routePermissions[itemPermission] || []).map((r) => r.toLowerCase());
-    return allowedRoles.includes(roleLower);
+    return canAccess(role || user?.role, itemPermission);
   };
 
   const handleLogout = async () => {
     try {
       await api.post("/auth/logout");
     } catch (error) {
-      console.error("Erro ao fazer logout no servidor:", error);
+      logger.error("Erro ao fazer logout no servidor:", error);
     } finally {
       logout();
       navigate("/login", { replace: true });

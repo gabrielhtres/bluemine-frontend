@@ -11,9 +11,10 @@ import {
   FileInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../../services/api";
 import showDefaultNotification, { extractErrorMessages } from "../../utils/showDefaultNotification";
+import { logger } from "../../utils/logger";
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
@@ -28,7 +29,11 @@ export default function RegisterPage() {
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) return "Email inválido";
         return null;
       },
-      password: (value) => (!value ? "Senha é obrigatória" : null),
+      password: (value) => {
+        if (!value) return "Senha é obrigatória";
+        if (value.length < 6) return "Senha deve ter pelo menos 6 caracteres";
+        return null;
+      },
     },
     validateInputOnBlur: true,
   });
@@ -54,7 +59,7 @@ export default function RegisterPage() {
       });
       navigate("/login");
     } catch (err) {
-      console.error(err);
+      logger.error(err);
 
       const msgs = extractErrorMessages(err);
       const joined = msgs.join(" ").toLowerCase();
@@ -111,6 +116,7 @@ export default function RegisterPage() {
               <PasswordInput
                 label="Senha"
                 placeholder="Ex: ********"
+                description="Mínimo de 6 caracteres"
                 {...form.getInputProps("password")}
                 radius="sm"
               />
@@ -133,7 +139,7 @@ export default function RegisterPage() {
           </form>
 
           <Text size="sm" align="center" color="dimmed">
-            Já possui uma conta? <a href="/login">Faça login</a>
+            Já possui uma conta? <Link to="/login">Faça login</Link>
           </Text>
         </Stack>
       </Paper>

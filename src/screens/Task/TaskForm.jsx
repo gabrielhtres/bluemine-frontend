@@ -2,12 +2,11 @@ import { useMemo } from "react";
 import { useForm } from "@mantine/form";
 import { TextInput, Textarea, Select, Button, Group, Stack, Alert } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
-import { useAuthStore } from "../../store/authStore";
+import { useUserRole } from "../../hooks/useUserRole";
+import { TASK_STATUS_OPTIONS, PRIORITY_OPTIONS } from "../../constants/status";
 
 export function TaskForm({ initialValues, onSubmit, onCancel, users = [], projects = [] }) {
-  const { role } = useAuthStore();
-  const roleLower = (role || "")?.toLowerCase?.() || "";
-  const isManager = roleLower === "admin" || roleLower === "manager";
+  const { isManager } = useUserRole();
   const canEdit = isManager || !initialValues?.id;
 
   const form = useForm({
@@ -108,12 +107,7 @@ export function TaskForm({ initialValues, onSubmit, onCancel, users = [], projec
           <Select
             label="Prioridade"
             placeholder="Ex: Média"
-            data={[
-              { value: "low", label: "Baixa" },
-              { value: "medium", label: "Média" },
-              { value: "high", label: "Alta" },
-              { value: "critical", label: "Crítica" },
-            ]}
+            data={PRIORITY_OPTIONS}
             disabled={!canEdit}
             {...form.getInputProps("priority")}
           />
@@ -140,12 +134,7 @@ export function TaskForm({ initialValues, onSubmit, onCancel, users = [], projec
              <Select
              label="Status Inicial"
              placeholder="Ex: Em Progresso"
-             data={[
-                 { value: 'todo', label: 'A Fazer' },
-                 { value: 'in_progress', label: 'Em Progresso' },
-                 { value: 'review', label: 'Revisão' },
-                 { value: 'done', label: 'Concluído' }
-             ]}
+             data={TASK_STATUS_OPTIONS}
              {...form.getInputProps("status")}
          />
         )}

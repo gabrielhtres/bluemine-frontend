@@ -10,10 +10,12 @@ import {
   Text,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
 import showDefaultNotification, { extractErrorMessages } from "../../utils/showDefaultNotification";
+import { normalizeUser } from "../../utils/normalizeUser";
+import { logger } from "../../utils/logger";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -28,7 +30,11 @@ export default function LoginPage() {
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) return "Email inválido";
         return null;
       },
-      password: (value) => (!value ? "Senha é obrigatória" : null),
+      password: (value) => {
+        if (!value) return "Senha é obrigatória";
+        // No login, não precisamos validar o comprimento mínimo, apenas verificar se foi informada
+        return null;
+      },
     },
     validateInputOnBlur: true,
   });
@@ -47,16 +53,13 @@ export default function LoginPage() {
       });
       const { accessToken, refreshToken, permissions, role, user, avatarUrl } = response.data;
 
-      const normalizedUser =
-        user && typeof user === "object"
-          ? { ...user, avatarUrl: user.avatarUrl || avatarUrl || null }
-          : { name: user, avatarUrl: avatarUrl || null };
+      const normalizedUser = normalizeUser(user, avatarUrl);
 
       setAuth({ accessToken, refreshToken, permissions, role, user: normalizedUser });
 
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      console.error(err);
+      logger.error(err);
 
       // tenta refletir no campo quando possível
       const msgs = extractErrorMessages(err).join(" ").toLowerCase();
@@ -118,7 +121,7 @@ export default function LoginPage() {
           </form>
 
           <Text size="sm" align="center" color="dimmed">
-            Não possui uma conta? <a href="/register">Registre-se</a>
+            Não possui uma conta? <Link to="/register">Registre-se</Link>
           </Text>
         </Stack>
       </Paper>

@@ -1,13 +1,7 @@
 import { useForm } from "@mantine/form";
 import { Button, Group, Select, Stack, TextInput, Textarea } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
-
-const statusOptions = [
-  { value: "planned", label: "Planejado" },
-  { value: "active", label: "Ativo" },
-  { value: "completed", label: "Concluído" },
-  { value: "cancelled", label: "Cancelado" },
-];
+import { PROJECT_STATUS_OPTIONS } from "../../constants/status";
 
 export function ProjectForm({ initialValues, onSubmit, onCancel, loading = false }) {
   const form = useForm({
@@ -67,7 +61,7 @@ export function ProjectForm({ initialValues, onSubmit, onCancel, loading = false
         <Select
           label="Status"
           placeholder="Ex: Ativo"
-          data={statusOptions}
+          data={PROJECT_STATUS_OPTIONS}
           searchable
           {...form.getInputProps("status")}
         />

@@ -15,6 +15,7 @@ import {
 import { DatePickerInput } from "@mantine/dates";
 import { BarChart, PieChart, DonutChart } from "@mantine/charts";
 import api from "../../services/api";
+import { logger } from "../../utils/logger";
 import { StatCard } from "./StatCard";
 import { IconBriefcase, IconClock, IconCircleCheck } from "@tabler/icons-react";
 import showDefaultNotification from "../../utils/showDefaultNotification";
@@ -111,7 +112,7 @@ export function ManagerDashboard() {
         const { data } = await api.get("/dashboard", { params });
         setDashboard(data);
       } catch (error) {
-        console.error("Erro ao carregar dados do dashboard:", error);
+        logger.error("Erro ao carregar dados do dashboard:", error);
         showDefaultNotification({
           title: "Erro",
           message: "Não foi possível carregar o dashboard",

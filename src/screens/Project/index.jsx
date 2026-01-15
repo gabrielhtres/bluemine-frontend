@@ -25,6 +25,8 @@ import { useDisclosure } from "@mantine/hooks";
 import { IconDots, IconEdit, IconListCheck, IconPlus, IconTrash, IconUserPlus } from "@tabler/icons-react";
 import api from "../../services/api";
 import showDefaultNotification from "../../utils/showDefaultNotification";
+import { logger } from "../../utils/logger";
+import { prepareProjectPayload } from "../../utils/projectPayload";
 import { KanbanBoard } from "./KanbanBoard";
 import { ProjectDetailsDrawer } from "./ProjectDetailsDrawer";
 import dayjs from "dayjs";
@@ -46,6 +48,8 @@ export default function ProjectsPage() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [detailsOpened, { open: openDetails, close: closeDetails }] = useDisclosure(false);
   const [detailsTab, setDetailsTab] = useState("tasks");
+  const [deleteConfirmOpen, { open: openDeleteConfirm, close: closeDeleteConfirm }] = useDisclosure(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
 
   const [viewMode, setViewMode] = useState("list"); // list | kanban
 
@@ -56,7 +60,7 @@ export default function ProjectsPage() {
       setProjects(data);
       return data;
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       showDefaultNotification({ title: "Erro", message: "Falha ao carregar projetos", type: "error", error });
       return null;
     } finally {
@@ -79,11 +83,14 @@ export default function ProjectsPage() {
   };
 
   const handleSave = async (values) => {
+    // Prepara payload removendo propriedades read-only
+    const payload = prepareProjectPayload(values);
+
     try {
       if (editingProject) {
-        await api.put(`/project/${editingProject.id}`, values);
+        await api.put(`/project/${editingProject.id}`, payload);
       } else {
-        await api.post("/project", values);
+        await api.post("/project", payload);
       }
       showDefaultNotification({ title: "Sucesso", message: "Projeto salvo.", type: "success" });
       closeForm();
@@ -93,14 +100,27 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if(!window.confirm("Certeza?")) return;
+  const handleDeleteClick = (id) => {
+    setProjectToDelete(id);
+    openDeleteConfirm();
+  };
+
+  const handleDelete = async () => {
+    if (!projectToDelete) return;
+    const id = projectToDelete;
     try {
         await api.delete(`/project/${id}`);
         setProjects(projects.filter(p => p.id !== id));
         showDefaultNotification({ title: "Sucesso", message: "Projeto removido.", type: "success" });
+        closeDeleteConfirm();
+        setProjectToDelete(null);
     } catch (err) {
-        console.error(err);
+        logger.error(err);
+        showDefaultNotification({ title: "Erro", message: "Não foi possível excluir o projeto.", type: "error", error: err });
+        // Reverter otimista em caso de erro
+        fetchProjects();
+        closeDeleteConfirm();
+        setProjectToDelete(null);
     }
   }
 
@@ -126,6 +146,7 @@ export default function ProjectsPage() {
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
 
+    // Atualização otimista
     setProjects(current => current.map(p => p.id === projectId ? { ...p, status: newStatus } : p));
     
     try {
@@ -134,12 +155,19 @@ export default function ProjectsPage() {
         await api.patch(`/project/${projectId}/status`, { status: newStatus });
       } catch {
         // Se o endpoint de status não existir, atualiza o projeto completo
-        await api.put(`/project/${projectId}`, { ...project, status: newStatus });
+        // Prepara payload limpo apenas com os campos necessários
+        const payload = prepareProjectPayload({
+          ...project,
+          status: newStatus,
+        });
+        await api.put(`/project/${projectId}`, payload);
       }
     } catch (error) {
-      console.error(error);
+      logger.error(error);
+      // Reverter atualização otimista apenas se a requisição falhar
+      setProjects(current => current.map(p => p.id === projectId ? { ...p, status: project.status } : p));
       showDefaultNotification({ title: "Erro", message: "Falha ao atualizar status", type: "error", error });
-      fetchProjects();
+      // Não fazer re-fetch completo - o estado já foi revertido
     }
   }
 
@@ -343,7 +371,7 @@ export default function ProjectsPage() {
                         <Menu.Item leftSection={<IconEdit size={14} />} onClick={() => handleEdit(project)}>
                           Editar
                         </Menu.Item>
-                        <Menu.Item color="red" leftSection={<IconTrash size={14} />} onClick={() => handleDelete(project.id)}>
+                        <Menu.Item color="red" leftSection={<IconTrash size={14} />} onClick={() => handleDeleteClick(project.id)}>
                           Excluir
                         </Menu.Item>
                       </Menu.Dropdown>
@@ -360,7 +388,7 @@ export default function ProjectsPage() {
             projects={filteredProjects}
             onStatusChange={handleStatusChange}
             onEdit={handleEdit}
-            onDelete={handleDelete}
+            onDelete={handleDeleteClick}
             onAssign={handleAssignClick}
             onTasks={handleTasksClick}
           />
@@ -372,7 +400,9 @@ export default function ProjectsPage() {
           initialValues={
             editingProject
               ? {
-                  ...editingProject,
+                  name: editingProject.name || '',
+                  description: editingProject.description || '',
+                  status: editingProject.status || 'planned',
                   startDate: editingProject.startDate ? new Date(editingProject.startDate) : null,
                   endDate: editingProject.endDate ? new Date(editingProject.endDate) : null,
                 }
@@ -399,6 +429,31 @@ export default function ProjectsPage() {
           }
         }}
       />
+
+      <Modal
+        opened={deleteConfirmOpen}
+        onClose={() => {
+          closeDeleteConfirm();
+          setProjectToDelete(null);
+        }}
+        title="Confirmar exclusão"
+        centered
+      >
+        <Stack gap="md">
+          <Text>Tem certeza que deseja excluir este projeto? Esta ação não pode ser desfeita.</Text>
+          <Group justify="flex-end" gap="sm">
+            <Button variant="subtle" onClick={() => {
+              closeDeleteConfirm();
+              setProjectToDelete(null);
+            }}>
+              Cancelar
+            </Button>
+            <Button color="red" onClick={handleDelete}>
+              Excluir
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </div>
   );
 }

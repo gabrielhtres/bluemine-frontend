@@ -4,14 +4,14 @@ import { useDisclosure } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import api from "../../services/api";
 import showDefaultNotification from "../../utils/showDefaultNotification";
+import { prepareTaskPayload } from "../../utils/taskPayload";
 import { KanbanBoard as TaskKanbanBoard } from "../Task/KanbanBoard";
 import { TaskForm } from "../Task/TaskForm";
-import { useAuthStore } from "../../store/authStore";
+import { useUserRole } from "../../hooks/useUserRole";
+import { logger } from "../../utils/logger";
 
 export function ProjectTasksModal({ opened, onClose, project }) {
-  const { role } = useAuthStore();
-  const roleLower = (role || "")?.toLowerCase?.() || "";
-  const isManager = roleLower === "admin" || roleLower === "manager";
+  const { isManager } = useUserRole();
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -43,7 +43,7 @@ export function ProjectTasksModal({ opened, onClose, project }) {
         setTasks((data || []).filter((t) => Number(t.projectId ?? t.project?.id) === projectIdNum));
       }
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       showDefaultNotification({
         title: "Erro",
         message: "Falha ao carregar tarefas do projeto",
@@ -89,8 +89,13 @@ export function ProjectTasksModal({ opened, onClose, project }) {
   const handleEdit = async (task) => {
     try {
       await fetchUsersIfNeeded();
+      // Passa apenas os campos necessários para o formulário
       setEditingTask({
-        ...task,
+        id: task.id,
+        title: task.title || '',
+        description: task.description || '',
+        priority: task.priority || 'medium',
+        status: task.status || 'todo',
         dueDate: task.dueDate ? new Date(task.dueDate) : new Date(),
         assigneeId: task.assigneeId ? String(task.assigneeId) : null,
         projectId: String(project.id),
@@ -102,11 +107,11 @@ export function ProjectTasksModal({ opened, onClose, project }) {
   };
 
   const handleSave = async (values) => {
-    const payload = {
+    // Prepara payload removendo propriedades read-only e garantindo projectId do projeto atual
+    const payload = prepareTaskPayload({
       ...values,
-      projectId: Number(project.id),
-      assigneeId: Number(values.assigneeId),
-    };
+      projectId: project.id, // Garante que o projectId sempre seja do projeto atual
+    });
 
     try {
       if (editingTask?.id) {
@@ -119,7 +124,7 @@ export function ProjectTasksModal({ opened, onClose, project }) {
       setEditingTask(null);
       fetchTasks();
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       showDefaultNotification({
         title: "Erro",
         message: error.response?.data?.message?.message?.[0] || "Erro ao salvar tarefa.",
@@ -130,23 +135,30 @@ export function ProjectTasksModal({ opened, onClose, project }) {
   };
 
   const handleDelete = async (id) => {
+    // TODO: Implementar Modal de confirmação do Mantine
     if (!window.confirm("Excluir tarefa permanentemente?")) return;
     try {
       await api.delete(`/task/${id}`);
       setTasks((current) => current.filter((t) => t.id !== id));
       showDefaultNotification({ title: "Sucesso", message: "Tarefa excluída.", type: "success" });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       showDefaultNotification({ title: "Erro", message: "Não foi possível excluir.", type: "error", error });
     }
   };
 
   const handleStatusChange = async (taskId, newStatus) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    // Atualização otimista
     setTasks((current) => current.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
     try {
       await api.patch(`/task/${taskId}/status`, { status: newStatus });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
+      // Reverter atualização otimista
+      setTasks((current) => current.map((t) => (t.id === taskId ? { ...t, status: task.status } : t)));
       showDefaultNotification({ title: "Erro", message: "Falha ao atualizar status", type: "error", error });
       fetchTasks();
     }

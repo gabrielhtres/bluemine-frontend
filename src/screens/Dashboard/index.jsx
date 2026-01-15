@@ -2,10 +2,11 @@ import { useAuthStore } from "../../store/authStore";
 import { ManagerDashboard } from "./ManagerDashboard";
 import { DeveloperDashboard } from "./DeveloperDashboard";
 import { Center, Loader, Text } from "@mantine/core";
+import { getRoleLower, isManager } from "../../utils/permissions";
 
 export default function DashboardPage() {
   const role = useAuthStore((state) => state.role);
-  const roleLower = (role || "")?.toLowerCase?.() || "";
+  const roleLower = getRoleLower(role);
 
   if (!roleLower) {
     return (
@@ -15,7 +16,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (roleLower === "admin" || roleLower === "manager") {
+  if (isManager(role) || roleLower === "admin") {
     return <ManagerDashboard />;
   }
 
